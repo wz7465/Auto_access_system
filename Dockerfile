@@ -1,16 +1,13 @@
-FROM node:18-alpine
+FROM node:20-alpine3.20
 
-WORKDIR /app
+WORKDIR /tmp
 
 COPY . .
 
-RUN npm install
+EXPOSE 3000/tcp
 
-ENV PORT=7860
-ENV NODE_ENV=production
-# 管理密码
-ENV ADMIN_PASSWORD=admin  
+RUN apk add --no-cache curl bash && \
+    npm install && \
+    chmod +x index.js
 
-EXPOSE 7860
-
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
