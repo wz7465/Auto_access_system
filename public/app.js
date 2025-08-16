@@ -555,10 +555,6 @@ class AppState {
                                 </span>
                             </span>
                         </div>
-                        <div class="detail-item">
-                            <span class="detail-label">ID</span>
-                            <span class="detail-value">#${url.id}</span>
-                        </div>
                     </div>
                     <div class="url-actions">
                         <button class="btn btn-warning" onclick="app.editUrl(${url.id})" title="编辑">
@@ -1275,3 +1271,4 @@ window.addEventListener('error', (e) => {
         app.showNotification('error', '系统发生错误，请刷新页面重试');
     }
 });
+
