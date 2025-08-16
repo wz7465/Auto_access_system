@@ -573,7 +573,7 @@ input:checked + .slider:before {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(0, 0, 0, 0.15);
     position: absolute;
-    left: 60%;
+    left: 68%;
     top: 50%;
     transform: translate(-50%, -50%);
     z-index: 10;
@@ -1467,3 +1467,4 @@ input:checked + .slider:before {
     background: var(--warning-color);
     color: var(--gray-800);
 }
+
