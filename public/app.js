@@ -146,6 +146,39 @@ class AppState {
     }
 
     bindEvents() {
+        // 侧边栏收起/展开
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                if (window.innerWidth <= 992) {
+                    // 移动端：抽屉式开关
+                    const opened = sidebar.classList.toggle('mobile-open');
+                    if (sidebarOverlay) sidebarOverlay.classList.toggle('show', opened);
+                } else {
+                    // 桌面端：收起/展开
+                    sidebar.classList.toggle('collapsed');
+                }
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('mobile-open');
+                sidebarOverlay.classList.remove('show');
+            });
+        }
+
+        // 窗口尺寸变化时重置移动端抽屉状态
+        window.addEventListener('resize', this.debounce(() => {
+            if (window.innerWidth > 992 && sidebar) {
+                sidebar.classList.remove('mobile-open');
+                if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+            }
+        }, 200));
+
         // 登录相关
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
@@ -390,12 +423,31 @@ class AppState {
 
     handleTabSwitch(e) {
         const tabName = e.currentTarget.dataset.tab;
-        
+        const tabTitles = {
+            urls: 'URL 管理',
+            logs: '访问日志',
+            telegram: 'Telegram 配置'
+        };
+
         // 更新导航状态
         document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
             item.classList.remove('active');
         });
         e.currentTarget.classList.add('active');
+
+        // 更新顶栏标题
+        const topbarTitle = document.getElementById('topbarTitle');
+        if (topbarTitle && tabTitles[tabName]) {
+            topbarTitle.textContent = tabTitles[tabName];
+        }
+
+        // 移动端：点击菜单后收起抽屉
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        if (window.innerWidth <= 992 && sidebar) {
+            sidebar.classList.remove('mobile-open');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+        }
 
         // 切换标签页内容
         document.querySelectorAll('.tab-content').forEach(content => {
@@ -776,13 +828,16 @@ class AppState {
         messageEl.textContent = message;
         modal.classList.add('show');
 
-        const handleConfirm = () => {
+        // 先移除旧监听，避免多次打开后重复触发
+        if (this._confirmHandler) {
+            confirmBtn.removeEventListener('click', this._confirmHandler);
+        }
+
+        this._confirmHandler = () => {
             onConfirm();
             this.hideConfirmModal();
-            confirmBtn.removeEventListener('click', handleConfirm);
         };
-
-        confirmBtn.addEventListener('click', handleConfirm);
+        confirmBtn.addEventListener('click', this._confirmHandler);
     }
 
     hideConfirmModal() {
@@ -855,14 +910,17 @@ class AppState {
 
     // 批量添加相关方法
     switchAddMode(e) {
-        const mode = e.target.dataset.mode;
+        // 点击按钮内图标时向上找到按钮本身
+        const btn = e.target.closest('.mode-btn');
+        if (!btn) return;
+        const mode = btn.dataset.mode;
         const modeBtns = document.querySelectorAll('.mode-btn');
         const forms = document.querySelectorAll('.add-form');
-        
+
         // 更新按钮状态
-        modeBtns.forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
-        
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
         // 切换表单显示
         forms.forEach(form => form.classList.remove('active'));
         if (mode === 'single') {

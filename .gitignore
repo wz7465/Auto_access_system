@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# 运行时数据（URL、日志、Telegram配置）
+data/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 环境变量
+.env
+.env.local
+
+# 系统文件
+.DS_Store
+Thumbs.db
