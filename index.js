@@ -505,13 +505,18 @@ app.post('/api/urls/batch', requireAuth, (req, res) => {
 // 删除URL
 app.delete('/api/urls/:id', requireAuth, (req, res) => {
   const id = parseInt(req.params.id);
-  
+
+  const beforeCount = urls.length + scheduledUrls.length;
   urls = urls.filter(u => u.id !== id);
   scheduledUrls = scheduledUrls.filter(u => u.id !== id);
-  
+
+  if (urls.length + scheduledUrls.length === beforeCount) {
+    return res.status(404).json({ error: 'URL不存在' });
+  }
+
   // 保存数据到文件
   saveUrlsData();
-  
+
   res.json({ success: true });
 });
 
