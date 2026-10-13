@@ -308,7 +308,7 @@ async function visitWebsite(url, type) {
      if (currentEnabled) {
        const errorMessage = `📣 <b>自动访问系统通知</b>\n\n` +
          `🔗 <b>URL:</b> ${url}\n` +
-         `📊 <b>访问模式:</b> ${type === '24h' ? '24小时访问' : '定时访问'}\n` +
+         `📊 <b>访问模式:</b> ${getModeLabel(type)}\n` +
          `❌ <b>错误状态:</b> ${errorStatus}\n` +
          `💬 <b>错误信息:</b> ${error.message}\n` +
          `⏰ <b>时间:</b> ${moment().tz('Asia/Hong_Kong').format('YYYY-MM-DD HH:mm:ss')}`;
@@ -318,10 +318,41 @@ async function visitWebsite(url, type) {
   }
 }
 
-// 24小时不间断访问
-cron.schedule('*/2 * * * *', () => {
-  urls.filter(u => u.active).forEach((urlObj) => {
-    visitWebsite(urlObj.url, '24h');
+// 访问模式定义：type -> 显示名；24h 系列共用"24小时"调度组，仅间隔不同
+const MODE_LABELS = {
+  '24h': '24小时访问(每2分钟)',
+  '24h_5m': '24小时访问(每5分钟)',
+  '24h_10m': '24小时访问(每10分钟)',
+  '24h_30m': '24小时访问(每30分钟)',
+  '24h_1h': '24小时访问(每1小时)',
+  'scheduled': '定时访问(每2分钟,1:00-6:00暂停)'
+};
+
+// 判断是否属于24小时访问组
+function is24hType(type) {
+  return type === '24h' || type.startsWith('24h_');
+}
+
+// 模式显示名
+function getModeLabel(type) {
+  return MODE_LABELS[type] || type;
+}
+
+// 24小时访问组：按各自间隔分别调度
+// 各模式cron：2分钟沿用原表达式；5/10/30分钟用步进；1小时用整点
+const MODE_CRONS = {
+  '24h': '*/2 * * * *',
+  '24h_5m': '*/5 * * * *',
+  '24h_10m': '*/10 * * * *',
+  '24h_30m': '*/30 * * * *',
+  '24h_1h': '0 * * * *'
+};
+
+Object.entries(MODE_CRONS).forEach(([type, expr]) => {
+  cron.schedule(expr, () => {
+    urls.filter(u => u.active && u.type === type).forEach((urlObj) => {
+      visitWebsite(urlObj.url, urlObj.type);
+    });
   });
 });
 
@@ -405,7 +436,7 @@ app.post('/api/urls', requireAuth, (req, res) => {
     active: true
   };
   
-  if (type === '24h') {
+  if (is24hType(type)) {
     urls.push(newUrl);
   } else if (type === 'scheduled') {
     scheduledUrls.push(newUrl);
@@ -444,12 +475,12 @@ app.post('/api/urls/batch', requireAuth, (req, res) => {
       active: active
     };
     
-    if (type === '24h') {
+    if (is24hType(type)) {
       urls.push(newUrl);
     } else if (type === 'scheduled') {
       scheduledUrls.push(newUrl);
     }
-    
+
     addedUrls.push(newUrl);
   }
   
@@ -524,7 +555,7 @@ app.put('/api/urls/:id/edit', requireAuth, (req, res) => {
     // 如果类型改变了，需要从原数组移除并添加到新数组
     if (url.type !== type) {
       urls = urls.filter(u => u.id !== id);
-      if (type === '24h') {
+      if (is24hType(type)) {
         urls.push({ ...url, url: newUrl, name, type });
       } else {
         scheduledUrls.push({ ...url, url: newUrl, name, type });
@@ -542,7 +573,7 @@ app.put('/api/urls/:id/edit', requireAuth, (req, res) => {
       // 如果类型改变了，需要从原数组移除并添加到新数组
       if (url.type !== type) {
         scheduledUrls = scheduledUrls.filter(u => u.id !== id);
-        if (type === '24h') {
+        if (is24hType(type)) {
           urls.push({ ...url, url: newUrl, name, type });
         } else {
           scheduledUrls.push({ ...url, url: newUrl, name, type });

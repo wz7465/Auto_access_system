@@ -601,9 +601,9 @@ class AppState {
                         <div class="detail-item">
                             <span class="detail-label">访问模式</span>
                             <span class="detail-value">
-                                <span class="mode-badge ${url.type === '24h' ? 'mode-24h' : 'mode-scheduled'}">
-                                    <i class="fas fa-${url.type === '24h' ? 'clock' : 'calendar-alt'}"></i>
-                                    ${url.type === '24h' ? '24小时' : '定时(每2分钟,1:00-6:00暂停)'}
+                                <span class="mode-badge ${url.type === 'scheduled' ? 'mode-scheduled' : 'mode-24h'}">
+                                    <i class="fas fa-${url.type === 'scheduled' ? 'calendar-alt' : 'clock'}"></i>
+                                    ${this.getModeLabel(url.type)}
                                 </span>
                             </span>
                         </div>
@@ -624,6 +624,19 @@ class AppState {
                 </div>
             </div>
         `).join('');
+    }
+
+    // 模式type -> 显示名（与后端 getModeLabel 保持一致）
+    getModeLabel(type) {
+        const labels = {
+            '24h': '24小时',
+            '24h_5m': '24小时·每5分钟',
+            '24h_10m': '24小时·每10分钟',
+            '24h_30m': '24小时·每30分钟',
+            '24h_1h': '24小时·每1小时',
+            'scheduled': '定时(每2分钟,1:00-6:00暂停)'
+        };
+        return labels[type] || type;
     }
 
     async refreshLogs() {
@@ -1001,7 +1014,14 @@ class AppState {
                     <div class="preview-url">${item.url}</div>
                     <div class="preview-name">名称: ${item.name}</div>
                     ${item.description ? `<div class="preview-description">备注: ${item.description}</div>` : ''}
-                    <div class="preview-mode">${accessMode === '24h' ? '24小时访问' : '定时访问'}</div>
+                    <div class="preview-mode">${{
+                        '24h': '24小时访问(每2分钟)',
+                        '24h_5m': '24小时访问(每5分钟)',
+                        '24h_10m': '24小时访问(每10分钟)',
+                        '24h_30m': '24小时访问(每30分钟)',
+                        '24h_1h': '24小时访问(每1小时)',
+                        'scheduled': '定时访问(每2分钟,1:00-6:00暂停)'
+                    }[accessMode] || accessMode}</div>
                 </div>
             `;
         });
