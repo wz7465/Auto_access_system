@@ -629,7 +629,7 @@ class AppState {
     // 模式type -> 显示名（与后端 getModeLabel 保持一致）
     getModeLabel(type) {
         const labels = {
-            '24h': '24小时(每2分钟)',
+            '24h_2m': '24小时(每2分钟)',
             '24h_5m': '24小时(每5分钟)',
             '24h_10m': '24小时(每10分钟)',
             '24h_30m': '24小时(每30分钟)',
@@ -1015,7 +1015,7 @@ class AppState {
                     <div class="preview-name">名称: ${item.name}</div>
                     ${item.description ? `<div class="preview-description">备注: ${item.description}</div>` : ''}
                     <div class="preview-mode">${{
-                        '24h': '24小时访问(每2分钟)',
+                        '24h_2m': '24小时访问(每2分钟)',
                         '24h_5m': '24小时访问(每5分钟)',
                         '24h_10m': '24小时访问(每10分钟)',
                         '24h_30m': '24小时访问(每30分钟)',

@@ -50,41 +50,46 @@ let scheduledUrls = [];
 let accessLogs = [];
 
 // 加载数据函数
+// 旧版2分钟模式type为'24h'，统一迁移为'24h_2m'
+function normalizeType(type) {
+  return type === '24h' ? '24h_2m' : type;
+}
+
 function loadData() {
   try {
     // 加载Telegram配置
     loadTelegramConfig();
-    
+
     // 加载URLs数据
     if (fs.existsSync(URLS_FILE)) {
       const urlData = JSON.parse(fs.readFileSync(URLS_FILE, 'utf8'));
-      urls = urlData.urls || [];
-      scheduledUrls = urlData.scheduledUrls || [];
+      urls = (urlData.urls || []).map(u => ({ ...u, type: normalizeType(u.type) }));
+      scheduledUrls = (urlData.scheduledUrls || []).map(u => ({ ...u, type: normalizeType(u.type) }));
       console.log(`加载了 ${urls.length} 个24小时URL和 ${scheduledUrls.length} 个定时URL`);
     } else {
       // 创建默认数据
       urls = [
-        { id: 1, url: 'https://www.baidu.com', name: '百度', type: '24h', active: true },
-        { id: 2, url: 'https://www.yahoo.com', name: '雅虎', type: '24h', active: true }
+        { id: 1, url: 'https://www.baidu.com', name: '百度', type: '24h_2m', active: true },
+        { id: 2, url: 'https://www.yahoo.com', name: '雅虎', type: '24h_2m', active: true }
       ];
       scheduledUrls = [
         { id: 3, url: 'https://www.google.com', name: '谷歌', type: 'scheduled', active: true }
       ];
       saveUrlsData();
     }
-    
+
     // 加载日志数据
     if (fs.existsSync(LOGS_FILE)) {
       const logData = JSON.parse(fs.readFileSync(LOGS_FILE, 'utf8'));
-      accessLogs = logData.logs || [];
+      accessLogs = (logData.logs || []).map(l => ({ ...l, type: normalizeType(l.type) }));
       console.log(`加载了 ${accessLogs.length} 条访问日志`);
     }
   } catch (error) {
     console.error('加载数据失败:', error.message);
     // 使用默认数据
     urls = [
-      { id: 1, url: 'https://www.baidu.com', name: '百度', type: '24h', active: true },
-      { id: 2, url: 'https://www.yahoo.com', name: '雅虎', type: '24h', active: true }
+      { id: 1, url: 'https://www.baidu.com', name: '百度', type: '24h_2m', active: true },
+      { id: 2, url: 'https://www.yahoo.com', name: '雅虎', type: '24h_2m', active: true }
     ];
     scheduledUrls = [
       { id: 3, url: 'https://www.google.com', name: '谷歌', type: 'scheduled', active: true }
@@ -320,7 +325,7 @@ async function visitWebsite(url, type) {
 
 // 访问模式定义：type -> 显示名；24h 系列共用"24小时"调度组，仅间隔不同
 const MODE_LABELS = {
-  '24h': '24小时访问(每2分钟)',
+  '24h_2m': '24小时访问(每2分钟)',
   '24h_5m': '24小时访问(每5分钟)',
   '24h_10m': '24小时访问(每10分钟)',
   '24h_30m': '24小时访问(每30分钟)',
@@ -341,7 +346,7 @@ function getModeLabel(type) {
 // 24小时访问组：按各自间隔分别调度
 // 各模式cron：2分钟沿用原表达式；5/10/30分钟用步进；1小时用整点
 const MODE_CRONS = {
-  '24h': '*/2 * * * *',
+  '24h_2m': '*/2 * * * *',
   '24h_5m': '*/5 * * * *',
   '24h_10m': '*/10 * * * *',
   '24h_30m': '*/30 * * * *',
