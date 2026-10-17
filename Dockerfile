@@ -1,13 +1,12 @@
-FROM node:20-alpine3.20
+FROM mcr.microsoft.com/playwright:latest
 
-WORKDIR /tmp
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
 
 COPY . .
 
-EXPOSE 3000/tcp
+EXPOSE 3000
 
-RUN apk add --no-cache curl bash && \
-    npm install && \
-    chmod +x index.js
-
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
