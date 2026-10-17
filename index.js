@@ -336,6 +336,12 @@ async function visitWebsite(url, type) {
     // 访问成功，按 200 记状态
     logAccess(url, 200, type);
   } catch (error) {
+    console.error('[网页访问失败]', url);
+    console.error('错误名称:', error.name);
+    console.error('错误代码:', error.code);
+    console.error('错误信息:', error.message);
+    console.error('错误堆栈:', error.stack);
+
     const errorStatus = error.status || error.code || 'ERROR';
 
     // 记录错误日志
