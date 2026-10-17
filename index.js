@@ -1,3 +1,12 @@
+const { chromium } = require('playwright');
+const {
+  randomWait,
+  simulateHumanMouse,
+  simulateHumanScroll,
+  simulateRandomClick
+} = require('./browser/humanBehavior');
+const { applyBasicAntiDetect } = require('./browser/antiDetect');
+
 const axios = require('axios');
 const moment = require('moment-timezone');
 const cron = require('node-cron');
@@ -279,47 +288,81 @@ function getRandomUserAgent() {
 }
 
 async function visitWebsite(url, type) {
+  let browser;
+  let context;
+  let page;
+
   try {
-    const response = await axios.get(url, { 
-      httpsAgent,
-      headers: {
-        'User-Agent': getRandomUserAgent(),
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'max-age=0'
-      }
+    // 启动 Chrome 内核（Playwright 的 chromium）
+    browser = await chromium.launch({
+      headless: true, // 如果你想看真实行为，可以改成 false
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--no-sandbox'
+      ]
     });
-    logAccess(url, response.status, type);
+
+    context = await browser.newContext({
+      userAgent: getRandomUserAgent(),
+      viewport: { width: 1366, height: 768 },
+      timezoneId: 'Asia/Hong_Kong',
+      locale: 'zh-CN',
+      colorScheme: 'light'
+    });
+
+    page = await context.newPage();
+
+    // 基础反检测补丁（webdriver 等）
+    await applyBasicAntiDetect(page);
+
+    // 预先模拟人类行为
+    await simulateHumanMouse(page);
+    await simulateHumanScroll(page);
+
+    // 访问目标页面（Chrome 内核真正加载页面）
+    await page.goto(url, {
+      waitUntil: 'networkidle',
+      timeout: 60000
+    });
+
+    // 模拟阅读停顿
+    await randomWait();
+
+    // 随机点击一次页面
+    await simulateRandomClick(page);
+
+    // 访问成功，按 200 记状态
+    logAccess(url, 200, type);
   } catch (error) {
-    let errorStatus;
-    if (error.response) {
-      errorStatus = error.response.status;
-    } else {
-      errorStatus = error.code;
-    }
-    
+    const errorStatus = error.status || error.code || 'ERROR';
+
     // 记录错误日志
     logAccess(url, errorStatus, type, error.message);
+
+    // Telegram 错误提醒（沿用你原来的逻辑）
+    const currentChatId = global.TG_CHAT_ID || TG_CHAT_ID;
+    const currentBotToken = global.TG_BOT_TOKEN || TG_BOT_TOKEN;
+    const currentEnabled = currentChatId && currentBotToken;
     
-     // 发送Telegram错误提醒
-     // 动态检查配置状态
-     const currentChatId = global.TG_CHAT_ID || TG_CHAT_ID;
-     const currentBotToken = global.TG_BOT_TOKEN || TG_BOT_TOKEN;
-     const currentEnabled = currentChatId && currentBotToken;
-     
-     if (currentEnabled) {
-       const errorMessage = `📣 <b>自动访问系统通知</b>\n\n` +
-         `🔗 <b>URL:</b> ${url}\n` +
-         `📊 <b>访问模式:</b> ${getModeLabel(type)}\n` +
-         `❌ <b>错误状态:</b> ${errorStatus}\n` +
-         `💬 <b>错误信息:</b> ${error.message}\n` +
-         `⏰ <b>时间:</b> ${moment().tz('Asia/Hong_Kong').format('YYYY-MM-DD HH:mm:ss')}`;
-       
-       await sendTelegramMessage(errorMessage);
-     }
+    if (currentEnabled) {
+      const errorMessage = `📣 <b>自动访问系统通知</b>\n\n` +
+        `🔗 <b>URL:</b> ${url}\n` +
+        `📊 <b>访问模式:</b> ${getModeLabel(type)}\n` +
+        `❌ <b>错误状态:</b> ${errorStatus}\n` +
+        `💬 <b>错误信息:</b> ${error.message}\n` +
+        `⏰ <b>时间:</b> ${moment().tz('Asia/Hong_Kong').format('YYYY-MM-DD HH:mm:ss')}`;
+      
+      await sendTelegramMessage(errorMessage);
+    }
+  } finally {
+    if (context) {
+      await context.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
