@@ -410,34 +410,61 @@ Object.entries(MODE_CRONS).forEach(([type, expr]) => {
   });
 });
 
-// 定时访问（01:00-06:00暂停）
-function checkAndSetTimer() {
-  const currentMoment = moment().tz('Asia/Hong_Kong');
-  if (currentMoment.hours() >= 1 && currentMoment.hours() < 6) {
+// 定时访问（香港时间 01:00-06:00 暂停）
+let visitIntervalId = null;
+let scheduledVisitsRunning = false;
+
+function stopScheduledVisits() {
+  if (visitIntervalId !== null) {
     clearInterval(visitIntervalId);
-    const nextVisitTime = currentMoment.add(0, 'day').hours(6).minutes(0).seconds(0);
-    const nextVisitInterval = nextVisitTime.diff(currentMoment);
-    setTimeout(() => {
-      startScheduledVisits();
-    }, nextVisitInterval);
+    visitIntervalId = null;
+  }
+
+  scheduledVisitsRunning = false;
+}
+
+function startScheduledVisits() {
+  // 已经运行时不重复创建定时器
+  if (scheduledVisitsRunning) {
+    return;
+  }
+
+  scheduledVisitsRunning = true;
+
+  visitIntervalId = setInterval(() => {
+    const currentHour = moment()
+      .tz('Asia/Hong_Kong')
+      .hour();
+
+    // 到达暂停时段后停止任务
+    if (currentHour >= 1 && currentHour < 6) {
+      stopScheduledVisits();
+      return;
+    }
+
+    scheduledUrls
+      .filter(urlObj => urlObj.active)
+      .forEach(urlObj => {
+        visitWebsite(urlObj.url, 'scheduled').catch(() => {});
+      });
+  }, 2 * 60 * 1000);
+}
+
+function checkAndSetTimer() {
+  const currentHour = moment()
+    .tz('Asia/Hong_Kong')
+    .hour();
+
+  if (currentHour >= 1 && currentHour < 6) {
+    stopScheduledVisits();
   } else {
     startScheduledVisits();
   }
 }
 
-let visitIntervalId;
-function startScheduledVisits() {
-  clearInterval(visitIntervalId);
-  visitIntervalId = setInterval(() => {
-    scheduledUrls.filter(u => u.active).forEach((urlObj) => {
-      visitWebsite(urlObj.url, 'scheduled');
-    });
-  }, 2 * 60 * 1000); // 每2分钟执行一次
-}
-
-// 启动定时访问
+// 启动时检查一次，之后每分钟检查是否需要启动或暂停
 checkAndSetTimer();
-setInterval(checkAndSetTimer, 2 * 60 * 1000);
+setInterval(checkAndSetTimer, 60 * 1000);
 
 // 身份验证中间件
 function requireAuth(req, res, next) {
