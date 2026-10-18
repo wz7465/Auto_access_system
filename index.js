@@ -295,7 +295,7 @@ async function visitWebsite(url, type) {
   try {
     // 启动 Chrome 内核（Playwright 的 chromium）
     browser = await chromium.launch({
-      headless: true, // 如果你想看真实行为，可以改成 false
+      headless: false, // 如果你想看真实行为，可以改成 false
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-web-security',
