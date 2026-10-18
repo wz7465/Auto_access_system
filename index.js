@@ -294,17 +294,9 @@ async function visitWebsite(url, type) {
 
   try {
     // 启动 Chrome 内核（Playwright 的 chromium）
-    browser = await chromium.launch({
-      headless: true, // 如果你想看真实行为，可以改成 false
-      args: [
-        '--disable-blink-features=AutomationControlled',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--no-sandbox'
-      ]
-    });
+    
 
-    context = await browser.newContext({
+    context = await newContext({
       userAgent: getRandomUserAgent(),
       viewport: { width: 1366, height: 768 },
       timezoneId: 'Asia/Hong_Kong',
@@ -316,6 +308,9 @@ async function visitWebsite(url, type) {
 
     // 基础反检测补丁（webdriver 等）
     await applyBasicAntiDetect(page);
+    await applyBasicAntiDetect(page);
+    await applyFingerprintSpoof(page);
+
 
     // 预先模拟人类行为
     await simulateHumanMouse(page);
