@@ -257,7 +257,7 @@ async function visitWebsite(url, type) {
   let page;
 
   try {
-    context = await newContext();
+    context = await newContext(getRandomUserAgent());
     await context.setExtraHTTPHeaders({
       'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
       'Upgrade-Insecure-Requests': '1'
@@ -267,8 +267,6 @@ async function visitWebsite(url, type) {
 
     await applyBasicAntiDetect(page);
     await applyFingerprintSpoof(page);
-
-    await page.setUserAgent(getRandomUserAgent());
 
     await simulateHumanMouse(page);
     await simulateHumanScroll(page);
