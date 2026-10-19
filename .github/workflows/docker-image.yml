@@ -30,7 +30,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/access:v1.0.0
+            ghcr.io/${{ github.repository_owner }}/access:v1.0.1
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=express-server
